@@ -1,0 +1,12 @@
+
+{
+  "name": "STARK RACING",
+  "short_name": "STARK RACING",
+  "description": "Ein neonbeleuchtetes Rennspiel mit Nitro, Verkehr und Boss-Rennen.",
+  "start_url": "/Stark-Racing/",
+  "scope": "/Stark-Racing/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#050510",
+  "theme_color": "#00eaff"
+}
