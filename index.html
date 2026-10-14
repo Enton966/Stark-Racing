@@ -53,7 +53,56 @@ const startButton=document.getElementById("start");
 const keys={left:false,right:false,brake:false};
 const road={left:65,right:435};
 const player={x:185,y:490,w:44,h:76};
+let audioCtx, engineOsc, engineGain, nitroOsc, nitroGain;
 
+function startEngineSound() {
+  if (audioCtx) {
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return;
+  }
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  engineOsc = audioCtx.createOscillator();
+  engineGain = audioCtx.createGain();
+  engineOsc.type = "sawtooth";
+  engineOsc.frequency.value = 65;
+  engineGain.gain.value = 0;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 420;
+
+  engineOsc.connect(filter);
+  filter.connect(engineGain);
+  engineGain.connect(audioCtx.destination);
+  engineOsc.start();
+
+  nitroOsc = audioCtx.createOscillator();
+  nitroGain = audioCtx.createGain();
+  nitroOsc.type = "sawtooth";
+  nitroOsc.frequency.value = 100;
+  nitroGain.gain.value = 0;
+  nitroOsc.connect(nitroGain);
+  nitroGain.connect(audioCtx.destination);
+  nitroOsc.start();
+}
+
+function updateEngineSound() {
+  if (!audioCtx || !engineGain) return;
+
+  const now = audioCtx.currentTime;
+  const rpm = 55 + speed * 23;
+
+  engineOsc.frequency.setTargetAtTime(rpm, now, 0.08);
+  engineGain.gain.setTargetAtTime(running ? 0.10 : 0, now, 0.08);
+
+  nitroOsc.frequency.setTargetAtTime(100 + speed * 18, now, 0.08);
+  nitroGain.gain.setTargetAtTime(
+    running && nitroTime > 0 ? 0.045 : 0,
+    now, 0.06
+  );
+}
 let running=false,finished=false,level=1,score=0,speed=0;
 let distance=0,roadOffset=0,nitroTime=0,lastTime=0;
 let bossDistance=0,traffic=[],enemyX=325;
