@@ -60,8 +60,7 @@ let bossDistance=0,traffic=[],enemyX=325;
 
 function isBoss(){return level%3===0}
 
-// LANGE RENNEN: 5000 normale, 7500 Boss-Streckenpunkte
-function levelLength(){return isBoss()?7500:5000}
+function levelLength(){return isBoss()?15000:10000}
 
 function updateHUD(){
  levelText.textContent="Level: "+level+(isBoss()?" 👹 BOSS":"");
