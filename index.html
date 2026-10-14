@@ -4,21 +4,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>STARK RACING 4.2</title>
+<title>STARK RACING 4.3</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#07111d;color:white;font-family:Arial;text-align:center}
-header{padding:14px;background:#101e31;border-bottom:2px solid #00d9ff}
+body{margin:0;background:#080d16;color:#fff;font-family:Arial,sans-serif;text-align:center}
+header{padding:14px;background:#111b2b;border-bottom:2px solid #00d9ff}
 h1{margin:0;color:#00d9ff;letter-spacing:3px}
-#hud{display:flex;justify-content:space-around;flex-wrap:wrap;gap:9px;padding:12px;font-weight:bold}
-canvas{width:100%;max-width:480px;height:auto;display:block;margin:auto;background:#17222d}
-button{padding:13px;margin:4px;border:0;border-radius:10px;background:#183754;color:white;font-weight:bold;font-size:15px;touch-action:none}
-#nitro{background:#e64e12}#start{background:#00c8e8;color:#04121a}
-#message{min-height:28px;padding:6px;color:#00eaff;font-weight:bold}
+#hud{display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;padding:12px;font-weight:bold}
+canvas{display:block;width:min(100%,480px);height:auto;margin:auto;background:#252a31;border:2px solid #00d9ff}
+button{border:0;border-radius:10px;padding:13px 16px;margin:4px;background:#172b43;color:#fff;font-weight:bold;font-size:15px;touch-action:none}
+button:active{background:#00a8ce}
+#nitro{background:#e65a17}
+#start{background:#00c8e8;color:#00121a}
+#message{min-height:27px;color:#00d9ff;font-weight:bold;padding:5px}
 </style>
 </head>
 <body>
-<header><h1>STARK RACING</h1>4.2 • 3D RACING EDITION</header>
+<header><h1>STARK RACING</h1><div>4.3 • TOP-DOWN EDITION</div></header>
 <div id="hud">
 <span id="lv">LEVEL 1</span>
 <span id="sp">0 KM/H</span>
@@ -26,7 +28,7 @@ button{padding:13px;margin:4px;border:0;border-radius:10px;background:#183754;co
 <span id="sc">SCORE 0</span>
 </div>
 <canvas id="game" width="480" height="700"></canvas>
-<div id="message">Bereit? Starte deinen Motor!</div>
+<div id="message">Bereit für das Rennen?</div>
 <div>
 <button id="left">⬅ LINKS</button>
 <button id="right">RECHTS ➡</button><br>
@@ -41,11 +43,12 @@ const c=document.getElementById("game"),g=c.getContext("2d");
 const $=id=>document.getElementById(id);
 const keys={left:false,right:false,brake:false,nitro:false};
 let level=1,speed=0,distance=0,score=0,running=false,finished=false;
-let nitroTime=0,roadOffset=0,last=0,spawn=0,traffic=[];
+let nitroTime=0,roadOffset=0,last=0,spawn=0,traffic=[],bossHP=100;
 let audio=null,motor=null,motorGain=null,turbo=null,turboGain=null,soundOn=true;
 const boss=()=>level%3===0;
 const length=()=>boss()?150000:100000;
-const car={x:0};
+const road={left:65,right:415};
+const player={x:218,y:535,w:44,h:78};
 
 function soundStart(){
  if(!soundOn)return;
@@ -74,9 +77,9 @@ function soundUpdate(){
 }
 function start(){
  if(running)return;
- speed=0;distance=0;nitroTime=0;traffic=[];spawn=0;car.x=0;
- finished=false;running=true;last=performance.now();
- $("message").textContent=boss()?"👑 BOSSRENNEN!":"🚦 RENNSTRECKE FREI!";
+ speed=0;distance=0;nitroTime=0;traffic=[];spawn=0;bossHP=100;
+ player.x=218;finished=false;running=true;last=performance.now();
+ $("message").textContent=boss()?"👑 BOSSRENNEN!":"🏁 LOS GEHT'S!";
  soundStart();requestAnimationFrame(loop);
 }
 function hud(){
@@ -86,110 +89,96 @@ function hud(){
  $("sc").textContent="SCORE "+score.toLocaleString("de-DE");
 }
 function finish(){
- running=false;finished=true;speed=0;level++;
- $("message").textContent="🏆 RENNEN GESCHAFFT!";
+ running=false;finished=true;speed=0;score+=1000;
+ $("message").textContent=boss()?"🏆 BOSS BESIEGT! LEVEL GESCHAFFT!":"🏆 RENNEN GESCHAFFT!";
  $("start").textContent="➡ NÄCHSTES LEVEL";
  draw();hud();soundUpdate();
 }
 function rounded(x,y,w,h,r,col){
  g.fillStyle=col;g.beginPath();g.roundRect(x,y,w,h,r);g.fill();
 }
-function roadPoint(z){
- const p=1-z;
- const half=30+p*185;
- const center=240+Math.sin((distance/45000)+z*2)*p*50;
- return {center,half,y:100+z*600};
-}
 function drawRoad(){
- g.fillStyle="#75b9e6";g.fillRect(0,0,480,230);
- g.fillStyle="#234e31";g.fillRect(0,230,480,470);
- g.fillStyle="#30343c";
- g.beginPath();
- for(let i=0;i<=50;i++){
-  const z=i/50,p=roadPoint(z);
-  if(i===0)g.moveTo(p.center-p.half,p.y);
-  else g.lineTo(p.center-p.half,p.y);
+ g.fillStyle="#22613c";g.fillRect(0,0,480,700);
+ g.fillStyle="#30343b";g.fillRect(road.left,0,road.right-road.left,700);
+ g.fillStyle="#f5f5f5";g.fillRect(road.left,0,4,700);g.fillRect(road.right-4,0,4,700);
+ for(let y=-80;y<780;y+=90){
+  const yy=(y+roadOffset)%780;
+  g.fillStyle="#eee";
+  g.fillRect(road.left+115,yy,5,43);
+  g.fillRect(road.left+230,yy,5,43);
  }
- for(let i=50;i>=0;i--){
-  const p=roadPoint(i/50);
-  g.lineTo(p.center+p.half,p.y);
- }
- g.closePath();g.fill();
- for(let i=0;i<22;i++){
-  let z=((i/22+roadOffset/100)%1),p=roadPoint(z);
-  g.fillStyle=i%2?"#fff":"#ff4545";
-  g.fillRect(p.center-p.half-5,p.y,5+z*4,8+z*7);
-  g.fillRect(p.center+p.half,p.y,5+z*4,8+z*7);
- }
- for(let i=0;i<16;i++){
-  let z=((i/16+roadOffset/100)%1),p=roadPoint(z);
-  if(i%2===0){
-   g.fillStyle="#f5f5f5";
-   g.fillRect(p.center-2,p.y,Math.max(1,z*5),Math.max(2,z*25));
-  }
+ // Streckenrand-Markierungen
+ for(let y=-40;y<740;y+=40){
+  const yy=(y+roadOffset*1.5)%740;
+  g.fillStyle="#f4f4f4";g.fillRect(road.left-9,yy,8,20);
+  g.fillStyle="#ff4545";g.fillRect(road.right+1,yy,8,20);
  }
 }
 function drawCar(x,y,w,h,col,hero=false){
- g.fillStyle="rgba(0,0,0,.35)";
- g.beginPath();g.ellipse(x+w/2,y+h,w*.65,8,0,0,Math.PI*2);g.fill();
  rounded(x,y,w,h,8,col);
- rounded(x+w*.17,y+h*.17,w*.66,h*.3,5,hero?"#152e48":"#9cdbef");
+ rounded(x+w*.17,y+h*.18,w*.66,h*.25,5,hero?"#80dfff":"#18283a");
+ g.fillStyle="#fff1a0";
+ g.fillRect(x+4,y+5,8,5);g.fillRect(x+w-12,y+5,8,5);
  g.fillStyle="#ff3333";
- g.fillRect(x+4,y+h-12,8,7);g.fillRect(x+w-12,y+h-12,8,7);
- g.fillStyle="#20232a";
- g.fillRect(x-3,y+12,5,h*.23);g.fillRect(x+w-2,y+12,5,h*.23);
+ g.fillRect(x+4,y+h-8,8,5);g.fillRect(x+w-12,y+h-8,8,5);
+ g.fillStyle="#111";
+ g.fillRect(x-3,y+14,5,17);g.fillRect(x+w-2,y+14,5,17);
  if(hero){g.strokeStyle="#00eaff";g.lineWidth=2;g.strokeRect(x-2,y-2,w+4,h+4);}
 }
 function draw(){
  g.clearRect(0,0,480,700);drawRoad();
- traffic.forEach(t=>{
-  const p=roadPoint(t.z),x=p.center+t.lane*p.half*.72;
-  const size=18+t.z*42;
-  drawCar(x-size/2,p.y-size*1.3,size,size*1.65,t.boss?"#f2a900":t.col);
- });
- const x=240+car.x;
+ traffic.forEach(t=>drawCar(t.x,t.y,t.w,t.h,t.color));
  if(nitroTime>0){
   g.fillStyle="#00d9ff";
-  g.beginPath();g.moveTo(x-15,610);g.lineTo(x-10,670+Math.random()*12);g.lineTo(x-3,610);g.fill();
-  g.beginPath();g.moveTo(x+4,610);g.lineTo(x+12,670+Math.random()*12);g.lineTo(x+17,610);g.fill();
+  g.beginPath();g.moveTo(player.x+7,player.y+player.h);
+  g.lineTo(player.x+13,player.y+player.h+30+Math.random()*12);
+  g.lineTo(player.x+20,player.y+player.h);g.fill();
+  g.beginPath();g.moveTo(player.x+25,player.y+player.h);
+  g.lineTo(player.x+32,player.y+player.h+30+Math.random()*12);
+  g.lineTo(player.x+38,player.y+player.h);g.fill();
  }
- drawCar(x-24,540,48,92,nitroTime>0?"#00d9ff":"#e8edf4",true);
+ drawCar(player.x,player.y,player.w,player.h,nitroTime>0?"#00d9ff":"#e8edf4",true);
+ if(boss()&&running){
+  g.fillStyle="#111";g.fillRect(115,12,250,14);
+  g.fillStyle="#ff3434";g.fillRect(117,14,246*bossHP/100,10);
+  g.fillStyle="#fff";g.font="12px Arial";g.textAlign="center";
+  g.fillText("BOSS ENERGY",240,10);
+ }
  if(!running){
-  g.fillStyle="rgba(2,8,18,.78)";g.fillRect(20,270,440,125);
-  g.fillStyle="#00eaff";g.textAlign="center";g.font="bold 28px Arial";
+  g.fillStyle="rgba(0,0,0,.72)";g.fillRect(20,270,440,130);
+  g.fillStyle="#00d9ff";g.textAlign="center";g.font="bold 27px Arial";
   g.fillText(finished?"RACE COMPLETE":"STARK RACING",240,320);
-  g.fillStyle="white";g.font="17px Arial";
-  g.fillText(finished?"Bereit für das nächste Level?":"Starte dein Rennen!",240,355);
+  g.fillStyle="#fff";g.font="17px Arial";
+  g.fillText(finished?"Bereit für die nächste Runde?":"Starte dein Rennen!",240,355);
  }
 }
 function update(dt){
  if(!running)return;
- if(keys.nitro&&nitroTime<=0&&speed>8)nitroTime=2.5;
+ if(keys.nitro&&nitroTime<=0&&speed>8)nitroTime=2;
  nitroTime=Math.max(0,nitroTime-dt);
- if(keys.brake)speed=Math.max(0,speed-22*dt);
- else speed=Math.min(nitroTime>0?45:28,speed+(nitroTime>0?28:12)*dt);
- if(keys.left)car.x-=190*dt;
- if(keys.right)car.x+=190*dt;
- car.x=Math.max(-125,Math.min(125,car.x));
+ if(keys.brake)speed=Math.max(0,speed-25*dt);
+ else speed=Math.min(nitroTime>0?45:30,speed+(nitroTime>0?30:14)*dt);
+ if(keys.left)player.x-=230*dt;
+ if(keys.right)player.x+=230*dt;
+ player.x=Math.max(road.left+5,Math.min(road.right-player.w-5,player.x));
  distance+=speed*dt*55;
- roadOffset=(roadOffset+speed*dt*.8)%1;
+ roadOffset=(roadOffset+speed*dt*5)%780;
  spawn-=dt;
  if(spawn<=0){
-  traffic.push({z:0,lane:Math.random()*.9-.45,col:["#ff3434","#ffce38","#a274ff"][Math.floor(Math.random()*3)],boss:boss()});
-  spawn=boss()?1.2:Math.max(.55,1.8-speed/35);
+  const lanes=[road.left+35,road.left+100,road.left+175,road.left+245,road.right-65];
+  const x=lanes[Math.floor(Math.random()*lanes.length)];
+  traffic.push({x,y:-100,w:42,h:72,color:["#ff3434","#ffce38","#a274ff","#f5f5f5"][Math.floor(Math.random()*4)],boss:boss()});
+  spawn=boss()?1.0:Math.max(.55,1.5-speed/65);
  }
- traffic.forEach(t=>t.z+=dt*(.12+speed/120));
- traffic=traffic.filter(t=>t.z<.98);
- const px=240+car.x;
- for(const t of traffic){
-  if(t.z>.79&&t.z<.94){
-   const p=roadPoint(t.z),tx=p.center+t.lane*p.half*.72;
-   if(Math.abs(tx-px)<38){
-    t.z=1;speed=Math.max(0,speed-8);score=Math.max(0,score-100);
-    $("message").textContent="💥 Kollision! Bleib auf der Strecke!";
-   }
+ traffic.forEach(t=>{
+  t.y+=(speed*1.2+70)*dt;
+  if(!t.hit&&player.x<t.x+t.w&&player.x+player.w>t.x&&player.y<t.y+t.h&&player.y+player.h>t.y){
+   t.hit=true;speed=Math.max(0,speed-12);score=Math.max(0,score-50);
+   if(boss())bossHP=Math.max(0,bossHP-8);
+   $("message").textContent="💥 KOLLISION! Vorsicht!";
   }
- }
+ });
+ traffic=traffic.filter(t=>t.y<760);
  score+=Math.floor(speed*dt);
  if(distance>=length()){finish();return;}
  hud();soundUpdate();
@@ -201,7 +190,7 @@ function loop(now){
  if(running)requestAnimationFrame(loop);
 }
 function hold(id,key){
- const el=$(id),down=e=>{e.preventDefault();keys[key]=true},up=e=>{e.preventDefault();keys[key]=false};
+ const el=$(id),down=e=>{e.preventDefault();keys[key]=true;},up=e=>{e.preventDefault();keys[key]=false;};
  el.addEventListener("pointerdown",down);el.addEventListener("pointerup",up);
  el.addEventListener("pointerleave",up);el.addEventListener("pointercancel",up);
 }
@@ -219,12 +208,11 @@ window.addEventListener("keyup",e=>{
  if(e.code==="Space"||e.key==="Shift")keys.nitro=false;
 });
 $("start").onclick=()=>{
- if(finished){$("start").textContent="🏁 RENNEN STARTEN";}
+ if(finished){level++;$("start").textContent="🏁 RENNEN STARTEN";}
  start();
 };
 $("sound").onclick=()=>{
- soundOn=!soundOn;
- $("sound").textContent=soundOn?"🔊 SOUND AN":"🔇 SOUND AUS";
+ soundOn=!soundOn;$("sound").textContent=soundOn?"🔊 SOUND AN":"🔇 SOUND AUS";
  if(soundOn)soundStart();soundUpdate();
 };
 draw();hud();
