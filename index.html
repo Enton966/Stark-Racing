@@ -2,6 +2,11 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
+ 
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00eaff">
+<meta name="description" content="STARK RACING – ein neonbeleuchtetes Rennspiel mit Nitro, Verkehr und Boss-Rennen.">
+ 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>STARK RACING</title>
@@ -303,4 +308,15 @@ window.addEventListener("blur",()=>{for(const k in keys)keys[k]=false});
 updateUI();draw();requestAnimationFrame(loop);
 </script>
 </body>
+ 
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(
+      "/Stark-Racing/service-worker.js"
+    ).catch(console.error);
+  });
+}
+</script>
+ 
 </html>
