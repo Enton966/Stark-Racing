@@ -131,7 +131,7 @@ function startGame(){
   if(message.dataset.result==="win")level++;
   resetLevel();
  }
- running=true;finished=false;
+ running=true;finished=false;startEngineSound();
  startButton.textContent="🏁 RENNEN LÄUFT";
  message.textContent=isBoss()?"👹 BOSSRENNEN! Besiege den Rivalen!":"🏁 Langes Rennen! Bleib auf der Strecke!";
  updateHUD();
