@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -7,611 +8,494 @@
 <meta name="description" content="STARK RACING – Neon-Rennen mit Nitro, Verkehr und Bossrennen.">
 <link rel="manifest" href="manifest.json">
 <title>STARK RACING</title>
-
 <style>
-* {
-  box-sizing: border-box;
-}
-
-html, body {
-  margin: 0;
-  background: #03040b;
-  color: #eafcff;
-  font-family: Arial, sans-serif;
-  text-align: center;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-h1 {
-  margin: 12px 0 4px;
-  color: #00eaff;
-  letter-spacing: 4px;
-  text-shadow: 0 0 15px #00eaff;
-}
-
-#info {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin: 9px auto;
-  max-width: 480px;
-  font-size: 13px;
-}
-
-.stat {
-  padding: 8px;
-  background: #0b1020;
-  border: 1px solid #00bfff;
-  border-radius: 8px;
-}
-
-#game {
-  display: block;
-  width: min(100%, 480px);
-  height: auto;
-  margin: auto;
-  border: 2px solid #00d9ff;
-  box-shadow: 0 0 18px #0077ff;
-  touch-action: none;
-}
-
-#message {
-  min-height: 24px;
-  color: #ff42ed;
-  margin: 8px;
-  font-weight: bold;
-}
-
-button {
-  background: #091528;
-  color: #eafcff;
-  border: 1px solid #00eaff;
-  border-radius: 9px;
-  padding: 12px 10px;
-  font-size: 14px;
-  font-weight: bold;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-button:active {
-  background: #064c70;
-  transform: scale(.97);
-}
-
-#start {
-  margin: 5px 0 10px;
-}
-
-#controls {
-  max-width: 480px;
-  margin: 8px auto;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 0 4px;
-}
-
-#controls button {
-  padding: 17px 2px;
-}
-
-small {
-  color: #94cbd9;
-}
+*{box-sizing:border-box}
+html,body{margin:0;background:#03040b;color:#eafcff;font-family:Arial,sans-serif;text-align:center;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+h1{margin:12px 0 4px;color:#00eaff;letter-spacing:4px;text-shadow:0 0 15px #00eaff}
+#info{display:flex;justify-content:space-around;flex-wrap:wrap;gap:5px;margin:9px auto;max-width:480px;font-size:13px}
+.stat{padding:8px;background:#0b1020;border:1px solid #00bfff;border-radius:8px}
+#game{display:block;width:min(100%,480px);height:auto;margin:auto;border:2px solid #00d9ff;box-shadow:0 0 18px #0077ff;touch-action:none}
+#message{min-height:24px;color:#ff42ed;margin:8px;font-weight:bold}
+button{background:#091528;color:#eafcff;border:1px solid #00eaff;border-radius:9px;padding:12px 10px;font-size:14px;font-weight:bold;touch-action:none;user-select:none;-webkit-user-select:none}
+button:active{background:#064c70;transform:scale(.97)}
+#start{margin:5px 0 10px}
+#pause{margin:5px 0 10px}
+#controls{max-width:480px;margin:8px auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 4px}
+#controls button{padding:17px 2px}
+small{color:#94cbd9}
 </style>
 </head>
-
 <body>
-
 <h1>STARK RACING</h1>
-
 <div id="info">
   <div class="stat">LEVEL <b id="level">1</b></div>
   <div class="stat">SPEED <b id="speed">0</b></div>
   <div class="stat">NITRO <b id="nitro">100%</b></div>
   <div class="stat">DISTANZ <b id="distance">0</b> m</div>
 </div>
-
-<canvas id="game" width="480" height="700"></canvas>
-
+<canvas id="game" width="480" height="700" aria-label="STARK RACING Spiel"></canvas>
 <div id="message">BEREIT FÜR DAS RENNEN?</div>
-
 <button id="start">▶ RENNEN STARTEN</button>
-
+<button id="pause">⏸ PAUSE</button>
 <div id="controls">
   <button data-key="left">◀ LINKS</button>
   <button data-key="brake">▼ BREMSEN</button>
   <button data-key="nitro">⚡ NITRO</button>
   <button data-key="right">RECHTS ▶</button>
 </div>
-
-<small>
-  PC: ← → steuern · ↓ bremsen · Leertaste Nitro · Esc Pause
-</small>
-
+<small>PC: ← → steuern · ↓ bremsen · Leertaste Nitro · Esc Pause</small>
 <script>
 "use strict";
-
+(() => {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-
 const $ = id => document.getElementById(id);
+const W = canvas.width, H = canvas.height;
+const CONFIG = {roadWidth:360,normalDistance:200000,bossDistance:300000,playerWidth:44,playerHeight:78,playerSpeed:260,normalMaxSpeed:52,nitroMaxSpeed:75,trafficMin:7,trafficMax:17};
+const road = {get left(){return (W-CONFIG.roadWidth)/2},get right(){return (W+CONFIG.roadWidth)/2}};
+const player = {x:W/2-CONFIG.playerWidth/2,y:530,w:CONFIG.playerWidth,h:CONFIG.playerHeight};
+const keys = {left:false,right:false,brake:false,nitro:false};
+let level=1,distance=0,speed=0,nitro=100,running=false,paused=false,finished=false,gameOver=false;
+let roadOffset=0,spawnTimer=0,nitroTime=0,traffic=[],lastTime=0,audio=null,engineOsc=null,engineGain=null;
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const random=(min,max)=>min+Math.random()*(max-min);
+const isBoss=()=>level%3===0;
+const levelLength=()=>isBoss()?CONFIG.bossDistance:CONFIG.normalDistance;
 
-const W = 480;
-const H = 700;
-
-const CONFIG = {
-  roadWidth: 360,
-  normalDistance: 200000,
-  bossDistance: 300000,
-  playerWidth: 44,
-  playerHeight: 78,
-  playerSpeed: 260,
-  normalMaxSpeed: 52,
-  nitroMaxSpeed: 75,
-  trafficMin: 7,
-  trafficMax: 17
-};
-
-const road = {
-  get left() {
-    return (W - CONFIG.roadWidth) / 2;
-  },
-  get right() {
-    return (W + CONFIG.roadWidth) / 2;
-  }
-};
-
-const player = {
-  x: 218,
-  y: 530,
-  w: 44,
-  h: 78
-};
-
-const keys = {
-  left: false,
-  right: false,
-  brake: false,
-  nitro: false
-};
-
-let level = 1;
-let distance = 0;
-let speed = 0;
-let nitro = 100;
-
-let running = false;
-let paused = false;
-let finished = false;
-let gameOver = false;
-
-let roadOffset = 0;
-let spawnTimer = 0;
-let nitroTime = 0;
-
-let traffic = [];
-let lastTime = 0;
-
-let audio = null;
-let engineOsc = null;
-let engineGain = null;
-
-const clamp = (n, min, max) =>
-  Math.max(min, Math.min(max, n));
-
-const random = (min, max) =>
-  min + Math.random() * (max - min);
-
-const isBoss = () => level % 3 === 0;
-
-const levelLength = () =>
-  isBoss()
-    ? CONFIG.bossDistance
-    : CONFIG.normalDistance;
-
-
-// ==============================
-// SOUND
-// ==============================
-
-function soundStart() {
-  try {
-    if (!audio) {
-      audio = new (
-        window.AudioContext ||
-        window.webkitAudioContext
-      )();
+function soundStart(){
+  try{
+    if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();
+    if(audio.state==="suspended")audio.resume();
+    if(!engineOsc){
+      engineOsc=audio.createOscillator();engineGain=audio.createGain();
+      engineOsc.type="sawtooth";engineGain.gain.value=0.008;
+      engineOsc.connect(engineGain);engineGain.connect(audio.destination);engineOsc.start();
     }
-
-    if (audio.state === "suspended") {
-      audio.resume();
-    }
-
-    if (!engineOsc) {
-      engineOsc = audio.createOscillator();
-      engineGain = audio.createGain();
-
-      engineOsc.type = "sawtooth";
-      engineGain.gain.value = 0.008;
-
-      engineOsc.connect(engineGain);
-      engineGain.connect(audio.destination);
-
-      engineOsc.start();
-    }
-  } catch (e) {}
+  }catch(e){}
 }
-
-function beep(freq = 600, duration = 0.12) {
-  if (!audio) return;
-
-  try {
-    const o = audio.createOscillator();
-    const v = audio.createGain();
-
-    o.type = "sine";
-    o.frequency.value = freq;
-
-    v.gain.setValueAtTime(
-      0.07,
-      audio.currentTime
-    );
-
-    v.gain.exponentialRampToValueAtTime(
-      0.001,
-      audio.currentTime + duration
-    );
-
-    o.connect(v);
-    v.connect(audio.destination);
-
-    o.start();
-    o.stop(audio.currentTime + duration);
-  } catch (e) {}
+function beep(freq=600,duration=0.12){
+  if(!audio)return;
+  try{
+    const o=audio.createOscillator(),v=audio.createGain();
+    o.type="sine";o.frequency.value=freq;
+    v.gain.setValueAtTime(0.07,audio.currentTime);
+    v.gain.exponentialRampToValueAtTime(0.001,audio.currentTime+duration);
+    o.connect(v);v.connect(audio.destination);o.start();o.stop(audio.currentTime+duration);
+  }catch(e){}
 }
-
-
-// ==============================
-// STRASSE ZEICHNEN
-// ==============================
-
-function drawRoad() {
-  ctx.fillStyle = "#050713";
-  ctx.fillRect(0, 0, W, H);
-
-  // Gebäude neben der Straße
-  for (let y = -70; y < H + 80; y += 85) {
-    const yy =
-      ((y + roadOffset * 0.65) % 850 + 850) % 850 - 70;
-
-    for (const x of [8, 436]) {
-      ctx.fillStyle = "#10132b";
-      ctx.fillRect(x, yy, 36, 48);
-
-      ctx.strokeStyle = "#ff00d9";
-      ctx.shadowColor = "#ff00d9";
-      ctx.shadowBlur = 8;
-      ctx.strokeRect(x, yy, 36, 48);
-      ctx.shadowBlur = 0;
-
-      ctx.fillStyle = "#00eaff";
-      ctx.fillRect(x + 7, yy + 8, 5, 12);
-      ctx.fillRect(x + 22, yy + 8, 5, 12);
+function drawRoad(){
+  ctx.fillStyle="#050713";ctx.fillRect(0,0,W,H);
+  for(let y=-70;y<H+80;y+=85){
+    const yy=((y+roadOffset*.65)%850+850)%850-70;
+    for(const x of [8,436]){
+      ctx.fillStyle="#10132b";ctx.fillRect(x,yy,36,48);
+      ctx.strokeStyle="#ff00d9";ctx.shadowColor="#ff00d9";ctx.shadowBlur=8;ctx.strokeRect(x,yy,36,48);ctx.shadowBlur=0;
+      ctx.fillStyle="#00eaff";ctx.fillRect(x+7,yy+8,5,12);ctx.fillRect(x+22,yy+8,5,12);
     }
   }
-
-  // Straßenfläche
-  ctx.fillStyle = "#101321";
-  ctx.fillRect(
-    road.left,
-    0,
-    CONFIG.roadWidth,
-    H
-  );
-
-  const grad = ctx.createLinearGradient(
-    road.left, 0,
-    road.right, 0
-  );
-
-  grad.addColorStop(0, "#17182b");
-  grad.addColorStop(0.5, "#0a0d19");
-  grad.addColorStop(1, "#17182b");
-
-  ctx.fillStyle = grad;
-  ctx.fillRect(
-    road.left,
-    0,
-    CONFIG.roadWidth,
-    H
-  );
-
-  // Leuchtende Straßenränder
-  ctx.save();
-  ctx.shadowBlur = 18;
-  ctx.shadowColor = "#00eaff";
-  ctx.fillStyle = "#00eaff";
-
-  ctx.fillRect(road.left, 0, 4, H);
-  ctx.fillRect(road.right - 4, 0, 4, H);
-
-  ctx.restore();
-
-  // Fahrbahnmarkierungen
-  ctx.save();
-  ctx.shadowBlur = 10;
-  ctx.shadowColor = "#008cff";
-  ctx.fillStyle = "#00bfff";
-
-  for (let lane = 1; lane <= 2; lane++) {
-    for (let y = -95; y < H + 95; y += 95) {
-      const yy =
-        ((y + roadOffset) % 95 + 95) % 95 - 95;
-
-      ctx.fillRect(
-        road.left +
-          lane * CONFIG.roadWidth / 3 - 2,
-        yy,
-        4,
-        48
-      );
-    }
+  ctx.fillStyle="#101321";ctx.fillRect(road.left,0,CONFIG.roadWidth,H);
+  const grad=ctx.createLinearGradient(road.left,0,road.right,0);
+  grad.addColorStop(0,"#17182b");grad.addColorStop(.5,"#0a0d19");grad.addColorStop(1,"#17182b");
+  ctx.fillStyle=grad;ctx.fillRect(road.left,0,CONFIG.roadWidth,H);
+  ctx.save();ctx.shadowBlur=18;ctx.shadowColor="#00eaff";ctx.fillStyle="#00eaff";
+  ctx.fillRect(road.left,0,4,H);ctx.fillRect(road.right-4,0,4,H);ctx.restore();
+  ctx.save();ctx.shadowBlur=10;ctx.shadowColor="#008cff";ctx.fillStyle="#00bfff";
+  for(let lane=1;lane<=2;lane++)for(let y=-95;y<H+95;y+=95){
+    const yy=((y+roadOffset)%95+95)%95-95;
+    ctx.fillRect(road.left+lane*CONFIG.roadWidth/3-2,yy,4,48);
   }
-
   ctx.restore();
-
-  // Pinke Randmarkierungen
-  ctx.save();
-  ctx.shadowBlur = 10;
-  ctx.shadowColor = "#ff00d9";
-  ctx.fillStyle = "#ff00d9";
-
-  for (let y = -75; y < H + 75; y += 75) {
-    const yy =
-      ((y + roadOffset) % 75 + 75) % 75 - 75;
-
-    ctx.fillRect(road.left - 9, yy, 4, 25);
-    ctx.fillRect(road.right + 5, yy, 4, 25);
+  ctx.save();ctx.shadowBlur=10;ctx.shadowColor="#ff00d9";ctx.fillStyle="#ff00d9";
+  for(let y=-75;y<H+75;y+=75){
+    const yy=((y+roadOffset)%75+75)%75-75;
+    ctx.fillRect(road.left-9,yy,4,25);ctx.fillRect(road.right+5,yy,4,25);
   }
-
   ctx.restore();
 }
-
-
-// ==============================
-// AUTOS ZEICHNEN
-// ==============================
-
-function drawCar(x, y, w, h, col, hero = false) {
-  ctx.save();
-
-  // Schatten
-  ctx.fillStyle = "rgba(0,0,0,.45)";
-  ctx.beginPath();
-
-  ctx.ellipse(
-    x + w / 2,
-    y + h / 2,
-    w * 0.72,
-    h * 0.48,
-    0, 0, Math.PI * 2
-  );
-
-  ctx.fill();
-
-  // Reifen
-  ctx.fillStyle = "#020308";
-
-  for (const yy of [0.2, 0.61]) {
-    ctx.fillRect(x - 4, y + h * yy, 7, h * 0.23);
-    ctx.fillRect(x + w - 3, y + h * yy, 7, h * 0.23);
+function drawCar(x,y,w,h,col,hero=false){
+  ctx.save();ctx.fillStyle="rgba(0,0,0,.45)";ctx.beginPath();
+  ctx.ellipse(x+w/2,y+h/2,w*.72,h*.48,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#020308";
+  for(const yy of [.2,.61]){
+    ctx.fillRect(x-4,y+h*yy,7,h*.23);ctx.fillRect(x+w-3,y+h*yy,7,h*.23);
   }
-
-  // Karosserie
-  ctx.shadowColor = hero ? "#00eaff" : col;
-  ctx.shadowBlur = hero ? 20 : 10;
-  ctx.fillStyle = col;
-
-  ctx.beginPath();
-  ctx.moveTo(x + w * 0.5, y);
-  ctx.lineTo(x + w * 0.77, y + h * 0.09);
-  ctx.lineTo(x + w * 0.94, y + h * 0.29);
-  ctx.lineTo(x + w * 0.98, y + h * 0.69);
-  ctx.lineTo(x + w * 0.79, y + h * 0.94);
-  ctx.lineTo(x + w * 0.65, y + h);
-  ctx.lineTo(x + w * 0.35, y + h);
-  ctx.lineTo(x + w * 0.21, y + h * 0.94);
-  ctx.lineTo(x + w * 0.02, y + h * 0.69);
-  ctx.lineTo(x + w * 0.06, y + h * 0.29);
-  ctx.lineTo(x + w * 0.23, y + h * 0.09);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.shadowBlur = 0;
-
-  // Windschutzscheibe
-  ctx.fillStyle = "#080e20";
-  ctx.beginPath();
-  ctx.moveTo(x + w * 0.23, y + h * 0.25);
-  ctx.lineTo(x + w * 0.77, y + h * 0.25);
-  ctx.lineTo(x + w * 0.69, y + h * 0.47);
-  ctx.lineTo(x + w * 0.31, y + h * 0.47);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = hero ? "#5eeaff" : "#25455d";
-
-  ctx.beginPath();
-  ctx.moveTo(x + w * 0.29, y + h * 0.27);
-  ctx.lineTo(x + w * 0.71, y + h * 0.27);
-  ctx.lineTo(x + w * 0.65, y + h * 0.43);
-  ctx.lineTo(x + w * 0.35, y + h * 0.43);
-  ctx.closePath();
-  ctx.fill();
-
-  // Unterer Karosseriebereich
-  ctx.fillStyle = "#07101d";
-  ctx.beginPath();
-  ctx.moveTo(x + w * 0.31, y + h * 0.53);
-  ctx.lineTo(x + w * 0.69, y + h * 0.53);
-  ctx.lineTo(x + w * 0.76, y + h * 0.72);
-  ctx.lineTo(x + w * 0.24, y + h * 0.72);
-  ctx.closePath();
-  ctx.fill();
-
-  // Scheinwerfer
-  ctx.fillStyle = "#fff7b0";
-  ctx.fillRect(x + w * 0.13, y + h * 0.08, w * 0.23, 4);
-  ctx.fillRect(x + w * 0.64, y + h * 0.08, w * 0.23, 4);
-
-  // Rücklichter
-  ctx.fillStyle = "#ff174d";
-  ctx.fillRect(x + w * 0.13, y + h * 0.89, w * 0.23, 4);
-  ctx.fillRect(x + w * 0.64, y + h * 0.89, w * 0.23, 4);
-
-  if (hero) {
-    ctx.strokeStyle = "#a5ffff";
-    ctx.lineWidth = 1.5;
-    ctx.shadowColor = "#00eaff";
-    ctx.shadowBlur = 16;
-    ctx.stroke();
-  }
-
+  ctx.shadowColor=hero?"#00eaff":col;ctx.shadowBlur=hero?20:10;ctx.fillStyle=col;ctx.beginPath();
+  ctx.moveTo(x+w*.5,y);ctx.lineTo(x+w*.77,y+h*.09);ctx.lineTo(x+w*.94,y+h*.29);
+  ctx.lineTo(x+w*.98,y+h*.69);ctx.lineTo(x+w*.79,y+h*.94);ctx.lineTo(x+w*.65,y+h);
+  ctx.lineTo(x+w*.35,y+h);ctx.lineTo(x+w*.21,y+h*.94);ctx.lineTo(x+w*.02,y+h*.69);
+  ctx.lineTo(x+w*.06,y+h*.29);ctx.lineTo(x+w*.23,y+h*.09);ctx.closePath();ctx.fill();
+  ctx.shadowBlur=0;ctx.fillStyle="#080e20";ctx.beginPath();
+  ctx.moveTo(x+w*.23,y+h*.25);ctx.lineTo(x+w*.77,y+h*.25);
+  ctx.lineTo(x+w*.69,y+h*.47);ctx.lineTo(x+w*.31,y+h*.47);ctx.closePath();ctx.fill();
+  ctx.fillStyle=hero?"#5eeaff":"#25455d";ctx.beginPath();
+  ctx.moveTo(x+w*.29,y+h*.27);ctx.lineTo(x+w*.71,y+h*.27);
+  ctx.lineTo(x+w*.65,y+h*.43);ctx.lineTo(x+w*.35,y+h*.43);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#07101d";ctx.beginPath();ctx.moveTo(x+w*.31,y+h*.53);
+  ctx.lineTo(x+w*.69,y+h*.53);ctx.lineTo(x+w*.76,y+h*.72);
+  ctx.lineTo(x+w*.24,y+h*.72);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#fff7b0";ctx.fillRect(x+w*.13,y+h*.08,w*.23,4);ctx.fillRect(x+w*.64,y+h*.08,w*.23,4);
+  ctx.fillStyle="#ff174d";ctx.fillRect(x+w*.13,y+h*.89,w*.23,4);ctx.fillRect(x+w*.64,y+h*.89,w*.23,4);
+  if(hero){ctx.strokeStyle="#a5ffff";ctx.lineWidth=1.5;ctx.shadowColor="#00eaff";ctx.shadowBlur=16;ctx.strokeRect(x+2,y+2,w-4,h-4)}
   ctx.restore();
 }
-
-
-// ==============================
-// VERKEHR
-// ==============================
-
-function spawnCar() {
-  const laneWidth = CONFIG.roadWidth / 3;
-  const lane = Math.floor(Math.random() * 3);
-
-  const w = 40;
-  const h = 72;
-
-  const x =
-    road.left +
-    laneWidth * lane +
-    (laneWidth - w) / 2;
-
-  const blocked = traffic.some(c =>
-    Math.abs(c.x - x) < w && c.y < 150
-  );
-
-  if (blocked) return;
-
-  traffic.push({
-    x,
-    y: -h - 10,
-    w,
-    h,
-    color: [
-      "#ff174d",
-      "#ff00d9",
-      "#ffc400",
-      "#8b5cff",
-      "#00ff9d"
-    ][Math.floor(Math.random() * 5)],
-    speed: random(
-      CONFIG.trafficMin,
-      CONFIG.trafficMax
-    )
-  });
+function spawnCar(){
+  const laneWidth=CONFIG.roadWidth/3,lane=Math.floor(Math.random()*3),w=40,h=72;
+  const x=road.left+laneWidth*lane+(laneWidth-w)/2;
+  if(traffic.some(c=>Math.abs(c.x-x)<w&&c.y<150))return;
+  traffic.push({x,y:-h-10,w,h,color:["#ff174d","#ff00d9","#ffc400","#8b5cff","#00ff9d"][Math.floor(Math.random()*5)],speed:random(CONFIG.trafficMin,CONFIG.trafficMax)});
 }
-
-
-// ==============================
-// KOLLISIONEN
-// ==============================
-
-function collides(a, b) {
-  const ax = a.x + a.w * 0.16;
-  const aw = a.w * 0.68;
-  const ay = a.y + a.h * 0.10;
-  const ah = a.h * 0.80;
-
-  const bx = b.x + b.w * 0.12;
-  const bw = b.w * 0.76;
-  const by = b.y + b.h * 0.10;
-  const bh = b.h * 0.80;
-
-  return (
-    ax < bx + bw &&
-    ax + aw > bx &&
-    ay < by + bh &&
-    ay + ah > by
-  );
+function collides(a,b){
+  const ax=a.x+a.w*.16,aw=a.w*.68,ay=a.y+a.h*.10,ah=a.h*.80;
+  const bx=b.x+b.w*.12,bw=b.w*.76,by=b.y+b.h*.10,bh=b.h*.80;
+  return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by;
 }
-
-function clearKeys() {
-  for (const k in keys) {
-    keys[k] = false;
-  }
+function clearKeys(){for(const k in keys)keys[k]=false}
+function crash(message="💥 CRASH! NOCH EIN VERSUCH?"){
+  running=false;paused=false;gameOver=true;speed=0;nitroTime=0;clearKeys();
+  $("message").textContent=message;$("start").textContent="↻ ERNEUT VERSUCHEN";beep(120,.4);
 }
-
-
-// ==============================
-// CRASH
-// ==============================
-
-function crash(
-  message = "💥 CRASH! NOCH EIN VERSUCH?"
-) {
-  running = false;
-  paused = false;
-  gameOver = true;
-  speed = 0;
-  nitroTime = 0;
-
-  clearKeys();
-
-  $("message").textContent = message;
-  $("start").textContent = "↻ ERNEUT VERSUCHEN";
-
-  beep(120, 0.4);
-}
-
-
-// ==============================
-// SPIELLOGIK
-// ==============================
-
-function update(dt) {
-  if (!running) return;
+ </script>
+ 
+function update(dt){
+  if(!running||paused)return;
 
   // Nitro aktivieren
-  if (
-    keys.nitro &&
-    nitro > 0 &&
-    nitroTime <= 0 &&
-    speed > 5
-  ) {
-    nitroTime = 2.2;
-    nitro = Math.max(0, nitro - 22);
-    beep(950, 0.2);
+  if(keys.nitro&&nitro>0&&nitroTime<=0&&speed>5){
+    nitroTime=2.2;
+    nitro=Math.max(0,nitro-22);
+    beep(950,.2);
   }
 
-  nitroTime = Math.max(0, nitroTime - dt);
+  nitroTime=Math.max(0,nitroTime-dt);
 
   // Bremsen und Beschleunigen
-  if (keys.brake) {
-    speed = Math.max(0, speed - 35 * dt);
-  } else {
-    speed = Math.min(
-      nitroTime > 0
-        ? CONFIG.nitroMaxSpeed
-        : CONFIG.normalMaxSpeed,
-      speed + (nitroTime > 0 ? 55 : 28) * dt
+  if(keys.brake){
+    speed=Math.max(0,speed-35*dt);
+  }else{
+    speed=Math.min(
+      nitroTime>0?CONFIG.nitroMaxSpeed:CONFIG.normalMaxSpeed,
+      speed+(nitroTime>0?55:28)*dt
     );
   }
 
-  // Nitro
+  // Auto steuern
+  const steer=CONFIG.playerSpeed*dt*(speed>0?1:.55);
+  if(keys.left)player.x-=steer;
+  if(keys.right)player.x+=steer;
+
+  // Straßenrand prüfen
+  if(player.x<road.left+5||player.x+player.w>road.right-5){
+    crash("🚧 STRASSENRAND! VERSUCH ES NOCH EINMAL.");
+    return;
+  }
+
+  roadOffset=(roadOffset+speed*dt*9)%1000;
+  distance+=speed*dt*100;
+
+  // Gegnerautos erzeugen
+  spawnTimer-=dt;
+  if(spawnTimer<=0){
+    spawnCar();
+    spawnTimer=random(.55,1.1)*Math.max(.5,1-speed/150);
+  }
+
+  // Verkehr bewegen
+  for(const c of traffic)c.y+=(speed+c.speed)*dt*4;
+  traffic=traffic.filter(c=>c.y<H+100);
+
+  // Zusammenstoß erkennen
+  for(const c of traffic){
+    if(collides(player,c)){
+      crash("💥 CRASH MIT EINEM GEGNER!");
+      return;
+    }
+  }
+
+  // Nitro wieder auffüllen
+  if(nitroTime<=0&&nitro<100){
+    nitro=Math.min(100,nitro+4*dt);
+  }
+
+  // Levelende
+  if(distance>=levelLength()){
+    running=false;
+    finished=true;
+    speed=0;
+    beep(880,.25);
+    $("message").textContent=isBoss()
+      ?"🏆 BOSS BESIEGT! LEVEL GESCHAFFT!"
+      :"🏁 LEVEL GESCHAFFT!";
+    $("start").textContent="▶ NÄCHSTES LEVEL";
+    return;
+  }
+
+  // Motorgeräusch an Geschwindigkeit anpassen
+  if(engineOsc&&audio){
+    engineOsc.frequency.setTargetAtTime(
+      70+speed*4,audio.currentTime,.08
+    );
+  }
+
+  updateHud();
+}
+
+function updateHud(){
+  $("level").textContent=level+(isBoss()?" 👑":"");
+  $("speed").textContent=Math.round(speed);
+  $("nitro").textContent=Math.round(nitro)+"%";
+  $("distance").textContent=Math.floor(distance).toLocaleString("de-DE");
+}
+
+function drawOverlay(title,subtitle){
+  ctx.save();
+  ctx.fillStyle="rgba(2,4,14,.78)";
+  ctx.fillRect(35,245,410,150);
+  ctx.strokeStyle="#00eaff";
+  ctx.lineWidth=2;
+  ctx.shadowColor="#00eaff";
+  ctx.shadowBlur=16;
+  ctx.strokeRect(35,245,410,150);
+  ctx.shadowBlur=0;
+  ctx.fillStyle="#00eaff";
+  ctx.font="bold 28px Arial";
+  ctx.textAlign="center";
+  ctx.fillText(title,W/2,300);
+  ctx.fillStyle="#fff";
+  ctx.font="16px Arial";
+  ctx.fillText(subtitle,W/2,335);
+  ctx.restore();
+}
+
+function render(){
+  drawRoad();
+
+  for(const c of traffic){
+    drawCar(c.x,c.y,c.w,c.h,c.color);
+  }
+
+  // Nitro-Flammen
+  if(nitroTime>0){
+    ctx.save();
+    ctx.shadowColor="#00eaff";
+    ctx.shadowBlur=18;
+    ctx.fillStyle="#00eaff";
+
+    ctx.beginPath();
+    ctx.moveTo(player.x+8,player.y+player.h-2);
+    ctx.lineTo(player.x+15,player.y+player.h+random(15,32));
+    ctx.lineTo(player.x+22,player.y+player.h-2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(player.x+25,player.y+player.h-2);
+    ctx.lineTo(player.x+32,player.y+player.h+random(15,32));
+    ctx.lineTo(player.x+39,player.y+player.h-2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  drawCar(player.x,player.y,player.w,player.h,"#00cfff",true);
+
+  if(!running&&!finished&&!gameOver){
+    drawOverlay("STARK RACING","Bereit? Tippe auf RENNEN STARTEN");
+  }
+
+  if(paused){
+    drawOverlay("PAUSE","Tippe auf PAUSE zum Weiterspielen");
+  }
+
+  if(gameOver){
+    drawOverlay("CRASH!","Tippe auf ERNEUT VERSUCHEN");
+  }
+
+  if(finished){
+    drawOverlay("LEVEL GESCHAFFT","Tippe auf NÄCHSTES LEVEL");
+  }
+}
+
+function loop(timestamp){
+  if(!lastTime)lastTime=timestamp;
+  const dt=Math.min((timestamp-lastTime)/1000,.04);
+  lastTime=timestamp;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+function startGame(){
+  soundStart();
+
+  // Nächstes Level nach einem Sieg
+  if(finished){
+    level++;
+    distance=0;
+    nitro=Math.min(100,nitro+20);
+    traffic=[];
+    finished=false;
+    gameOver=false;
+    paused=false;
+    running=true;
+    speed=0;
+    spawnTimer=.6;
+    $("message").textContent=isBoss()
+      ?"👑 BOSS-RENNEN!"
+      :"🚦 LOS GEHT'S!";
+    $("start").textContent="↻ NEUSTART";
+    updateHud();
+    return;
+  }
+
+  // Neustart nach einem Crash
+  if(gameOver){
+    distance=0;
+    nitro=100;
+    traffic=[];
+    player.x=W/2-player.w/2;
+    roadOffset=0;
+    spawnTimer=.6;
+    gameOver=false;
+    finished=false;
+    paused=false;
+    running=true;
+    speed=0;
+    $("message").textContent="🚦 LOS GEHT'S!";
+    $("start").textContent="↻ NEUSTART";
+    updateHud();
+    return;
+  }
+
+  // Aus der Pause zurückkehren
+  if(paused){
+    paused=false;
+    running=true;
+    $("message").textContent="🚦 WEITER GEHT'S!";
+    $("pause").textContent="⏸ PAUSE";
+    return;
+  }
+
+  // Rennen starten oder neu beginnen
+  distance=0;
+  nitro=100;
+  traffic=[];
+  player.x=W/2-player.w/2;
+  roadOffset=0;
+  spawnTimer=.6;
+  speed=0;
+  running=true;
+  paused=false;
+  gameOver=false;
+  finished=false;
+  nitroTime=0;
+  clearKeys();
+
+  $("message").textContent=isBoss()
+    ?"👑 BOSS-RENNEN!"
+    :"🚦 LOS GEHT'S!";
+  $("start").textContent="↻ NEUSTART";
+  $("pause").textContent="⏸ PAUSE";
+  updateHud();
+}
+
+function togglePause(){
+  if(gameOver||finished)return;
+  if(!running&&!paused)return;
+
+  paused=!paused;
+  running=!paused;
+
+  $("pause").textContent=paused
+    ?"▶ WEITER"
+    :"⏸ PAUSE";
+
+  $("message").textContent=paused
+    ?"⏸ PAUSE"
+    :"🚦 WEITER GEHT'S!";
+
+  if(paused)clearKeys();
+}
+    
+$("start").addEventListener("click", startGame);
+$("pause").addEventListener("click", togglePause);
+
+window.addEventListener("keydown", e => {
+  if (["ArrowLeft", "ArrowRight", "ArrowDown", " "].includes(e.key)) {
+    e.preventDefault();
+  }
+
+  if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+    keys.left = true;
+  }
+
+  if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+    keys.right = true;
+  }
+
+  if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") {
+    keys.brake = true;
+  }
+
+  if (e.key === " " || e.key.toLowerCase() === "w") {
+    keys.nitro = true;
+  }
+
+  if (e.key === "Escape") {
+    togglePause();
+  }
+});
+
+window.addEventListener("keyup", e => {
+  if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+    keys.left = false;
+  }
+
+  if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+    keys.right = false;
+  }
+
+  if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") {
+    keys.brake = false;
+  }
+
+  if (e.key === " " || e.key.toLowerCase() === "w") {
+    keys.nitro = false;
+  }
+});
+
+document.querySelectorAll("[data-key]").forEach(button => {
+  const key = button.dataset.key;
+
+  const down = e => {
+    e.preventDefault();
+    keys[key] = true;
+
+    if (key === "nitro") {
+      soundStart();
+    }
+  };
+
+  const up = e => {
+    e.preventDefault();
+    keys[key] = false;
+  };
+
+  button.addEventListener("pointerdown", down);
+  button.addEventListener("pointerup", up);
+  button.addEventListener("pointercancel", up);
+  button.addEventListener("pointerleave", up);
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && running) {
+    togglePause();
+  }
+});
+
+updateHud();
+render();
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+  </html>
+    
