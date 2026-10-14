@@ -4,376 +4,224 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STARK RACING 4.0</title>
+<title>STARK RACING 4.1</title>
 <style>
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: #080b16;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
-  overflow-x: hidden;
-}
-h1 {
-  color: #00eaff;
-  text-shadow: 0 0 15px #00eaff;
-  margin: 12px 0 5px;
-}
-#hud {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 8px;
-  font-weight: bold;
-}
-.stat {
-  background: #141d32;
-  border: 1px solid #00eaff;
-  border-radius: 8px;
-  padding: 8px 12px;
-}
-#game {
-  display: block;
-  width: min(96vw, 500px);
-  height: auto;
-  margin: 5px auto;
-  background: #111;
-  border: 3px solid #00eaff;
-  border-radius: 12px;
-  touch-action: none;
-}
-#message {
-  min-height: 28px;
-  color: #ffe45c;
-  font-weight: bold;
-  padding: 5px;
-}
-.controls {
-  width: min(96vw, 500px);
-  margin: 8px auto 18px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 7px;
-}
-.controls button, #start {
-  min-height: 62px;
-  border: 2px solid #00eaff;
-  background: #14213b;
-  color: white;
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: bold;
-  box-shadow: 0 0 9px #007c99;
-  touch-action: manipulation;
-}
-.controls button:active, #start:active {
-  background: #007b99;
-  transform: scale(.96);
-}
-#nitro {
-  border-color: #ffb000;
-  color: #ffe45c;
-  box-shadow: 0 0 12px #ff8c00;
-}
-#start {
-  min-height: 45px;
-  padding: 8px 20px;
-  margin: 5px;
-}
+*{box-sizing:border-box}
+body{margin:0;background:#080b16;color:white;font-family:Arial,sans-serif;text-align:center}
+h1{color:#00eaff;text-shadow:0 0 15px #00eaff;margin:12px 0}
+#hud{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:8px}
+.stat{background:#141d32;border:1px solid #00eaff;border-radius:8px;padding:9px;font-weight:bold}
+#game{display:block;width:min(96vw,500px);height:auto;margin:5px auto;background:#111;border:3px solid #00eaff;border-radius:12px;touch-action:none}
+#message{min-height:30px;color:#ffe45c;font-weight:bold;padding:6px}
+#start{min-height:48px;padding:10px 22px;margin:6px;background:#14213b;color:white;border:2px solid #00eaff;border-radius:12px;font-size:17px;font-weight:bold}
+.controls{width:min(96vw,500px);margin:8px auto 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.controls button{min-width:0;min-height:62px;padding:5px 1px;background:#14213b;color:white;border:2px solid #00eaff;border-radius:12px;font-size:clamp(11px,3vw,16px);font-weight:bold;touch-action:none}
+.controls button:active,#start:active{background:#007b99}
+#nitro{border-color:#ffb000;color:#ffe45c;box-shadow:0 0 12px #ff8c00}
 </style>
 </head>
 <body>
-<h1>🏎️ STARK RACING 4.0</h1>
+<h1>🏎️ STARK RACING 4.1</h1>
 
 <div id="hud">
-  <div class="stat" id="level">Level: 1</div>
-  <div class="stat" id="speed">Speed: 0</div>
-  <div class="stat" id="score">Punkte: 0</div>
+ <div class="stat" id="level">Level: 1</div>
+ <div class="stat" id="speed">Speed: 0</div>
+ <div class="stat" id="score">Punkte: 0</div>
 </div>
 
 <canvas id="game" width="500" height="620"></canvas>
 <div id="message">Drücke START und gib Gas!</div>
-<button id="start">▶ START / WEITER</button>
+<button id="start">▶ START</button>
 
-<!-- ALLE vier Steuerknöpfe sind HIER UNTEN -->
+<!-- GAMING-PAD: ALLE KNÖPFE BLEIBEN UNTEN -->
 <div class="controls">
-  <button id="left">⬅️ LINKS</button>
-  <button id="brake">🛑 BREMSE</button>
-  <button id="right">RECHTS ➡️</button>
-  <button id="nitro">⚡ NITRO</button>
+ <button id="left">⬅️ LINKS</button>
+ <button id="brake">🛑 BREMSE</button>
+ <button id="right">RECHTS ➡️</button>
+ <button id="nitro">⚡ NITRO</button>
 </div>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const levelText=document.getElementById("level");
+const speedText=document.getElementById("speed");
+const scoreText=document.getElementById("score");
+const message=document.getElementById("message");
+const startButton=document.getElementById("start");
 
-const hudLevel = document.getElementById("level");
-const hudSpeed = document.getElementById("speed");
-const hudScore = document.getElementById("score");
-const message = document.getElementById("message");
-const startButton = document.getElementById("start");
+const keys={left:false,right:false,brake:false};
+const road={left:65,right:435};
+const player={x:185,y:490,w:44,h:76};
 
-const keys = { left:false, right:false, brake:false };
-let running = false;
-let finished = false;
-let level = 1;
-let score = 0;
-let speed = 0;
-let distance = 0;
-let roadOffset = 0;
-let nitroTime = 0;
-let enemyDistance = 0;
-let enemyX = 325;
-let lastTime = 0;
-let traffic = [];
+let running=false,finished=false,level=1,score=0,speed=0;
+let distance=0,roadOffset=0,nitroTime=0,lastTime=0;
+let bossDistance=0,traffic=[],enemyX=325;
 
-const player = { x: 185, y: 490, w: 44, h: 76 };
-const road = { left: 65, right: 435 };
+function isBoss(){return level%3===0}
 
-function isBoss() {
-  return level % 3 === 0;
+// LANGE RENNEN: 5000 normale, 7500 Boss-Streckenpunkte
+function levelLength(){return isBoss()?7500:5000}
+
+function updateHUD(){
+ levelText.textContent="Level: "+level+(isBoss()?" 👹 BOSS":"");
+ speedText.textContent="Speed: "+Math.round(speed);
+ scoreText.textContent="Punkte: "+score;
 }
 
-function levelLength() {
-  return isBoss() ? 1600 : 1100;
+function resetLevel(){
+ speed=0;distance=0;bossDistance=0;nitroTime=0;
+ roadOffset=0;player.x=185;enemyX=325;traffic=[];
+ lastTime=0;finished=false;
 }
 
-function updateHUD() {
-  hudLevel.textContent = "Level: " + level +
-    (isBoss() ? " 👹 BOSS" : "");
-  hudSpeed.textContent = "Speed: " + Math.round(speed);
-  hudScore.textContent = "Punkte: " + score;
+function startGame(){
+ if(running)return;
+ if(finished){
+  if(message.dataset.result==="win")level++;
+  resetLevel();
+ }
+ running=true;finished=false;
+ startButton.textContent="🏁 RENNEN LÄUFT";
+ message.textContent=isBoss()?"👹 BOSSRENNEN! Besiege den Rivalen!":"🏁 Langes Rennen! Bleib auf der Strecke!";
+ updateHUD();
+ requestAnimationFrame(loop);
 }
 
-function resetLevel() {
-  speed = 0;
-  distance = 0;
-  enemyDistance = 0;
-  nitroTime = 0;
-  player.x = 185;
-  enemyX = 325;
-  traffic = [];
-  finished = false;
-  lastTime = 0;
+function endGame(won,text){
+ running=false;finished=true;
+ message.dataset.result=won?"win":"lose";
+ message.textContent=text;
+ startButton.textContent=won?"➡️ NÄCHSTES LEVEL":"🔄 NOCHMAL VERSUCHEN";
 }
 
-function startGame() {
-  if (running) return;
+function drawCar(x,y,color,label){
+ ctx.save();
+ ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=12;
+ ctx.fillRect(x,y,44,76);ctx.shadowBlur=0;
+ ctx.fillStyle="#111827";
+ ctx.fillRect(x+7,y+12,30,19);ctx.fillRect(x+7,y+43,30,16);
+ ctx.fillStyle="#fff";
+ ctx.fillRect(x+3,y+3,8,5);ctx.fillRect(x+33,y+3,8,5);
+ ctx.fillStyle="#ff3030";
+ ctx.fillRect(x+3,y+66,8,6);ctx.fillRect(x+33,y+66,8,6);
+ ctx.fillStyle="white";ctx.font="bold 11px Arial";ctx.textAlign="center";
+ ctx.fillText(label,x+22,y+40);ctx.restore();
+}
 
-  if (finished) {
-    if (message.dataset.result === "win") {
-      level++;
-    }
-    resetLevel();
+function drawRoad(){
+ ctx.fillStyle="#123a26";ctx.fillRect(0,0,500,620);
+ ctx.fillStyle="#343943";ctx.fillRect(road.left,0,370,620);
+ ctx.fillStyle="white";ctx.fillRect(road.left,0,5,620);ctx.fillRect(road.right-5,0,5,620);
+ ctx.strokeStyle="#ddd";ctx.lineWidth=5;
+ ctx.setLineDash([35,30]);ctx.lineDashOffset=-roadOffset;
+ ctx.beginPath();ctx.moveTo(250,0);ctx.lineTo(250,620);ctx.stroke();ctx.setLineDash([]);
+ if(isBoss()){
+  ctx.fillStyle="#ff3155";ctx.font="bold 16px Arial";ctx.textAlign="center";
+  ctx.fillText("BOSSRENNEN",250,25);
+  ctx.fillStyle="#40101a";ctx.fillRect(110,42,280,12);
+  ctx.fillStyle="#ff3155";
+  ctx.fillRect(110,42,280*Math.min(1,bossDistance/levelLength()),12);
+ }
+}
+
+function draw(){
+ drawRoad();
+ drawCar(player.x,player.y,"#00d9ff","YOU");
+ if(isBoss())drawCar(enemyX,235,"#ff3155","BOSS");
+ for(const t of traffic)drawCar(t.x,t.y,"#ffb52e","!");
+}
+
+function spawnTraffic(){
+ if(Math.random()<Math.min(.035,.012+level*.001)){
+  const lanes=[85,145,265,325,365];
+  traffic.push({x:lanes[Math.floor(Math.random()*lanes.length)],y:-90});
+ }
+}
+
+function loop(time){
+ if(!running)return;
+ const dt=lastTime?Math.min((time-lastTime)/16.67,2):1;
+ lastTime=time;
+
+ const maxSpeed=5+level*.2;
+ if(keys.brake)speed=Math.max(0,speed-.12*dt);
+ else speed=Math.min(maxSpeed,speed+.035*dt);
+ if(nitroTime>0){
+  speed=Math.min(maxSpeed+4,speed+.16*dt);
+  nitroTime-=dt;
+ }
+
+ if(keys.left)player.x-=5*dt;
+ if(keys.right)player.x+=5*dt;
+ player.x=Math.max(road.left+5,Math.min(road.right-player.w-5,player.x));
+
+ roadOffset+=speed*4*dt;
+ distance+=speed*dt;
+ score+=Math.floor(speed*dt);
+
+ if(isBoss()){
+  bossDistance+=(1.1+level*.08)*dt;
+  enemyX=280+Math.sin(time/350)*65;
+ }
+
+ spawnTraffic();
+ for(const t of traffic)t.y+=(speed+2)*dt;
+ traffic=traffic.filter(t=>t.y<700);
+
+ for(const t of traffic){
+  if(player.x<t.x+44&&player.x+player.w>t.x&&player.y<t.y+76&&player.y+player.h>t.y){
+   endGame(false,"💥 Crash! Versuch es nochmal!");
+   draw();return;
   }
+ }
 
-  running = true;
-  finished = false;
-  message.textContent = isBoss()
-    ? "👹 BOSSRENNEN! Besiege den Rivalen!"
-    : "🏁 Los geht's! Bleib auf der Strecke!";
-  updateHUD();
-  requestAnimationFrame(loop);
+ if(distance>=levelLength()){
+  endGame(true,isBoss()?"🏆 Bossrennen gewonnen!":"🏁 Level geschafft! Stark gefahren!");
+ }else if(isBoss()&&bossDistance>=levelLength()){
+  endGame(false,"👹 Der Boss war schneller! Versuch es erneut!");
+ }
+
+ updateHUD();draw();
+ if(running)requestAnimationFrame(loop);
 }
 
-function endGame(won, text) {
-  running = false;
-  finished = true;
-  message.dataset.result = won ? "win" : "lose";
-  message.textContent = text;
-  startButton.textContent = won
-    ? "➡️ NÄCHSTES LEVEL"
-    : "🔄 LEVEL NOCHMAL";
+function bindHold(id,key){
+ const b=document.getElementById(id);
+ b.addEventListener("pointerdown",e=>{
+  e.preventDefault();keys[key]=true;
+  b.setPointerCapture(e.pointerId);
+ });
+ const release=()=>keys[key]=false;
+ b.addEventListener("pointerup",release);
+ b.addEventListener("pointercancel",release);
+ b.addEventListener("lostpointercapture",release);
 }
 
-function drawCar(x, y, color, label) {
-  ctx.save();
-  ctx.fillStyle = color;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 12;
-  ctx.fillRect(x, y, 44, 76);
-  ctx.shadowBlur = 0;
+bindHold("left","left");
+bindHold("right","right");
+bindHold("brake","brake");
 
-  ctx.fillStyle = "#111827";
-  ctx.fillRect(x + 7, y + 12, 30, 19);
-  ctx.fillRect(x + 7, y + 43, 30, 16);
+document.getElementById("nitro").addEventListener("pointerdown",e=>{
+ e.preventDefault();if(running)nitroTime=100;
+});
+startButton.addEventListener("click",startGame);
 
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(x + 3, y + 3, 8, 5);
-  ctx.fillRect(x + 33, y + 3, 8, 5);
-
-  ctx.fillStyle = "#ff3030";
-  ctx.fillRect(x + 3, y + 66, 8, 6);
-  ctx.fillRect(x + 33, y + 66, 8, 6);
-
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 11px Arial";
-  ctx.textAlign = "center";
-  ctx.fillText(label, x + 22, y + 40);
-  ctx.restore();
-}
-
-function drawRoad() {
-  ctx.fillStyle = "#123a26";
-  ctx.fillRect(0, 0, 500, 620);
-
-  ctx.fillStyle = "#343943";
-  ctx.fillRect(road.left, 0, road.right-road.left, 620);
-
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(road.left, 0, 5, 620);
-  ctx.fillRect(road.right-5, 0, 5, 620);
-
-  ctx.strokeStyle = "#d8d8d8";
-  ctx.lineWidth = 5;
-  ctx.setLineDash([35, 30]);
-  ctx.lineDashOffset = -roadOffset;
-  ctx.beginPath();
-  ctx.moveTo(250, 0);
-  ctx.lineTo(250, 620);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  if (isBoss()) {
-    ctx.fillStyle = "#ff3155";
-    ctx.font = "bold 16px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("BOSS-RIVAL", enemyX + 22, 205);
-  }
-}
-
-function draw() {
-  drawRoad();
-  drawCar(player.x, player.y, "#00d9ff", "YOU");
-
-  if (isBoss()) {
-    drawCar(enemyX, 235, "#ff3155", "BOSS");
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 14px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("DU GEGEN DEN BOSS", 250, 28);
-
-    ctx.fillStyle = "#40101a";
-    ctx.fillRect(110, 42, 280, 12);
-    ctx.fillStyle = "#ff3155";
-    ctx.fillRect(110, 42, 280 * Math.min(1, enemyDistance/levelLength()), 12);
-  }
-
-  for (const t of traffic) {
-    drawCar(t.x, t.y, "#ffb52e", "!");
-  }
-}
-
-function spawnTraffic() {
-  if (Math.random() < 0.018 + level * 0.001) {
-    const lanes = [105, 205, 305, 355];
-    traffic.push({
-      x: lanes[Math.floor(Math.random()*lanes.length)],
-      y: -90
-    });
-  }
-}
-
-function loop(time) {
-  if (!running) return;
-
-  const dt = lastTime ? Math.min((time-lastTime)/16.67, 2) : 1;
-  lastTime = time;
-
-  const maxSpeed = 5 + level * 0.25;
-  if (keys.brake) speed = Math.max(0, speed - 0.12*dt);
-  else speed = Math.min(maxSpeed, speed + 0.035*dt);
-
-  if (nitroTime > 0) {
-    speed = Math.min(maxSpeed + 4, speed + 0.16*dt);
-    nitroTime -= dt;
-  }
-
-  if (keys.left) player.x -= 5*dt;
-  if (keys.right) player.x += 5*dt;
-  player.x = Math.max(road.left+5, Math.min(road.right-player.w-5, player.x));
-
-  roadOffset += speed*4*dt;
-  distance += speed*dt;
-  score += Math.floor(speed*dt);
-  enemyDistance += (isBoss() ? 1.1 + level*0.08 : 0)*dt;
-
-  if (isBoss()) {
-    enemyX = 280 + Math.sin(time/350)*65;
-  }
-
-  spawnTraffic();
-  for (const t of traffic) t.y += (speed+2)*dt;
-  traffic = traffic.filter(t => t.y < 700);
-
-  for (const t of traffic) {
-    const hit = player.x < t.x+44 &&
-      player.x+player.w > t.x &&
-      player.y < t.y+76 &&
-      player.y+player.h > t.y;
-    if (hit) {
-      endGame(false, "💥 Crash! Versuch es nochmal.");
-      draw();
-      return;
-    }
-  }
-
-  if (isBoss() && distance >= levelLength()) {
-    endGame(true, "🏆 Du hast den Boss besiegt!");
-  } else if (!isBoss() && distance >= levelLength()) {
-    endGame(true, "🏁 Level geschafft! Stark gefahren!");
-  } else if (isBoss() && enemyDistance >= levelLength()) {
-    endGame(false, "👹 Der Boss war schneller! Nochmal?");
-  }
-
-  updateHUD();
-  draw();
-
-  if (running) requestAnimationFrame(loop);
-}
-
-function bindHold(id, key) {
-  const button = document.getElementById(id);
-  button.addEventListener("pointerdown", e => {
-    e.preventDefault();
-    keys[key] = true;
-    button.setPointerCapture(e.pointerId);
-  });
-  const release = () => keys[key] = false;
-  button.addEventListener("pointerup", release);
-  button.addEventListener("pointercancel", release);
-  button.addEventListener("lostpointercapture", release);
-}
-
-bindHold("left", "left");
-bindHold("right", "right");
-bindHold("brake", "brake");
-
-document.getElementById("nitro").addEventListener("pointerdown", e => {
-  e.preventDefault();
-  if (running) nitroTime = 80;
+document.addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
+ if(k==="arrowleft"||k==="a")keys.left=true;
+ if(k==="arrowright"||k==="d")keys.right=true;
+ if(k==="arrowdown"||k===" ")keys.brake=true;
+ if(k==="arrowup"||k==="w"){if(running)nitroTime=100}
+});
+document.addEventListener("keyup",e=>{
+ const k=e.key.toLowerCase();
+ if(k==="arrowleft"||k==="a")keys.left=false;
+ if(k==="arrowright"||k==="d")keys.right=false;
+ if(k==="arrowdown"||k===" ")keys.brake=false;
 });
 
-startButton.addEventListener("click", startGame);
-
-document.addEventListener("keydown", e => {
-  if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") keys.left = true;
-  if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") keys.right = true;
-  if (e.key === "ArrowDown" || e.key === " ") keys.brake = true;
-  if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
-    if (running) nitroTime = 80;
-  }
-});
-document.addEventListener("keyup", e => {
-  if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") keys.left = false;
-  if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") keys.right = false;
-  if (e.key === "ArrowDown" || e.key === " ") keys.brake = false;
-});
-
-draw();
-updateHUD();
+draw();updateHUD();
 </script>
 </body>
 </html>
