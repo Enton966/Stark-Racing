@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>STARK RACING</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: #10131c; color: white;
+  font-family: Arial, sans-serif; text-align: center;
+  overflow: hidden; touch-action: manipulation;
+}
+h1 { margin: 12px 0 4px; color: #ff3030; letter-spacing: 3px; }
+#score { font-size: 20px; margin: 8px; }
+#game {
+  position: relative; width: min(100vw, 420px);
+  height: 65vh; min-height: 330px; max-height: 650px;
+  margin: auto; overflow: hidden;
+  background: repeating-linear-gradient(#30343c 0 45px,#292d35 45px 90px);
+  border-left: 7px solid #eee; border-right: 7px solid #eee;
+}
+.line {
+  position:absolute; left:50%; width:8px; height:60px;
+  background:white; transform:translateX(-50%);
+}
+.car {
+  position:absolute; font-size:42px; line-height:1;
+  transform:translateX(-50%); z-index:2;
+}
+#player { bottom:12px; left:50%; font-size:48px; }
+#controls { display:flex; justify-content:center; gap:12px; margin:12px; }
+button {
+  border:0; border-radius:12px; padding:15px 22px;
+  font-size:20px; font-weight:bold; color:white; background:#e52d35;
+}
+#start { background:#16884b; }
+#message {
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  justify-content:center; align-items:center; gap:15px;
+  background:#000b; z-index:5; font-size:24px;
+}
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+<h1>STARK RACING</h1>
+<div id="score">Punkte: 0</div>
+<div id="game">
+  <div class="line" style="top:0"></div>
+  <div class="line" style="top:150px"></div>
+  <div class="line" style="top:300px"></div>
+  <div id="player" class="car">🏎️</div>
+  <div id="message">
+    <b>🏁 STARK RACING</b>
+    <button id="start">START</button>
+  </div>
+</div>
+<div id="controls">
+  <button id="left">⬅️</button>
+  <button id="turbo">⚡ TURBO</button>
+  <button id="right">➡️</button>
+</div>
+<script>
+const game = document.getElementById('game');
+const player = document.getElementById('player');
+const scoreBox = document.getElementById('score');
+const message = document.getElementById('message');
+let x = 50, score = 0, running = false, turbo = false;
+let enemies = [], last = 0, animation = 0;
+
+function move(dir) {
+  if (!running) return;
+  x = Math.max(12, Math.min(88, x + dir * 9));
+  player.style.left = x + '%';
+}
+document.getElementById('left').onpointerdown = () => move(-1);
+document.getElementById('right').onpointerdown = () => move(1);
+document.getElementById('turbo').onpointerdown = () => {
+  turbo = true; setTimeout(() => turbo = false, 1500);
+};
+function spawn() {
+  const el = document.createElement('div');
+  el.className = 'car'; el.textContent = ['🚙','🚕','🚗','🚐','🚓'][Math.floor(Math.random()*5)];
+  const lane = [20, 50, 80][Math.floor(Math.random()*3)];
+  el.style.left = lane + '%'; el.style.top = '-55px';
+  game.appendChild(el);
+  enemies.push({el, lane, y:-55});
+}
+function end() {
+  running = false;
+  message.classList.remove('hidden');
+  message.innerHTML = '<b>💥 GAME OVER</b><div>Punkte: '+score+'</div><button onclick="restart()">NOCHMAL</button>';
+}
+function restart() {
+  enemies.forEach(e => e.el.remove()); enemies = [];
+  x=50; score=0; last=0; running=true;
+  player.style.left='50%'; scoreBox.textContent='Punkte: 0';
+  message.classList.add('hidden');
+  cancelAnimationFrame(animation); animation=requestAnimationFrame(loop);
+}
+function loop(t) {
+  if (!running) return;
+  const speed = turbo ? 6 : 3;
+  if (t-last > 850) { spawn(); last=t; }
+  enemies.forEach(e => {
+    e.y += speed; e.el.style.top=e.y+'px';
+    if (e.y > game.clientHeight) {
+      e.el.remove(); e.gone=true; score++;
+      scoreBox.textContent='Punkte: '+score;
+    }
+    if (e.y > game.clientHeight-95 && e.y < game.clientHeight-25 &&
+        Math.abs(e.lane-x) < 15) end();
+  });
+  enemies = enemies.filter(e => !e.gone);
+  animation=requestAnimationFrame(loop);
+}
+document.getElementById('start').onclick=restart;
+</script>
+</body>
+</html>
