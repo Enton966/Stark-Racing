@@ -1,0 +1,279 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>STARK RACING 2.0</title>
+<style>
+*{box-sizing:border-box}
+:root{--cyan:#00f5ff;--pink:#ff2bd6;--red:#ff3030}
+body{
+ margin:0;background:#080b18;color:white;text-align:center;
+ font-family:Arial,sans-serif;overflow-x:hidden;touch-action:manipulation;
+}
+h1{margin:14px 0 5px;color:var(--cyan);letter-spacing:3px;
+ text-shadow:0 0 12px var(--cyan),0 0 25px #006cff}
+.subtitle{color:#a9b8ff;font-size:12px;letter-spacing:4px}
+#stats{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin:12px}
+.stat{background:#101a30;border:1px solid #284c83;border-radius:10px;padding:9px 13px}
+.stat strong{color:var(--cyan)}
+#game{
+ position:relative;width:min(100vw,440px);height:62vh;min-height:340px;
+ max-height:620px;margin:auto;overflow:hidden;background:#151b2a;
+ border:2px solid var(--cyan);border-radius:12px;
+ box-shadow:0 0 18px #00eaff55;touch-action:none
+}
+.road{
+ position:absolute;inset:0;
+ background:linear-gradient(90deg,#222b40 0 5%,#343b4b 5% 95%,#222b40 95%);
+}
+.edge{position:absolute;top:0;bottom:0;width:5px;
+ background:linear-gradient(#ff2bd6,#00f5ff,#ff2bd6);z-index:1}
+.edge.left{left:5%}.edge.right{right:5%}
+.lane{
+ position:absolute;top:-100px;height:calc(100% + 200px);width:5px;
+ background:repeating-linear-gradient(to bottom,#e6faff 0 38px,transparent 38px 75px);
+ opacity:.7;left:33.33%
+}
+.lane.two{left:66.66%}
+.car{position:absolute;z-index:3;transform:translateX(-50%);
+ font-size:39px;line-height:1;filter:drop-shadow(0 0 7px #00eaff)}
+#player{bottom:15px;left:50%;font-size:48px}
+.flame{position:absolute;top:43px;left:50%;transform:translateX(-50%);
+ font-size:27px;display:none;filter:drop-shadow(0 0 8px orange)}
+#player.boost .flame{display:block;animation:fire .12s infinite alternate}
+@keyframes fire{from{transform:translateX(-50%) scale(.8)}
+ to{transform:translateX(-50%) scale(1.25)}}
+#overlay{position:absolute;inset:0;z-index:5;display:flex;
+ flex-direction:column;align-items:center;justify-content:center;gap:13px;
+ padding:15px;background:#050817eF}
+#overlay h2{color:var(--cyan);margin:0;text-shadow:0 0 12px var(--cyan)}
+#overlay p{margin:0;line-height:1.5}
+button,select{
+ border:1px solid var(--cyan);border-radius:11px;padding:12px 15px;
+ color:white;background:#101a30;font-size:16px;font-weight:bold;
+}
+button{cursor:pointer;touch-action:manipulation}
+button:active{transform:scale(.96)}
+#start{background:#00a9a9;color:#001015}
+#controls{display:flex;justify-content:center;gap:10px;margin:12px auto;max-width:440px}
+#controls button{flex:1;min-width:0;padding:15px 5px}
+#nitro{border-color:#ff8c00;color:#ffb84d}
+#nitro.active{background:#ff8c00;color:#1b0800}
+#garage{margin:12px auto;padding:12px;max-width:440px;
+ background:#101426;border:1px solid #273a68;border-radius:12px}
+#cars{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:9px}
+.carChoice{font-size:27px;padding:8px 12px;border-color:#36446b}
+.carChoice.selected{border-color:var(--pink);box-shadow:0 0 12px var(--pink)}
+#message{color:#ffd1ec;min-height:18px;font-size:13px;margin:8px}
+.small{font-size:12px;color:#a9b8ff}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<h1>STARK RACING</h1>
+<div class="subtitle">NEON STREET • VERSION 2.0</div>
+
+<div id="stats">
+ <div class="stat">🏁 Punkte: <strong id="score">0</strong></div>
+ <div class="stat">⚡ Level: <strong id="level">1</strong></div>
+ <div class="stat">🏆 Rekord: <strong id="best">0</strong></div>
+</div>
+
+<div id="game">
+ <div class="road"></div>
+ <div class="edge left"></div><div class="edge right"></div>
+ <div class="lane"></div><div class="lane two"></div>
+ <div id="player" class="car">
+  <span class="flame">🔥</span><span id="playerEmoji">🏎️</span>
+ </div>
+ <div id="overlay">
+  <h2 id="overlayTitle">🏁 STARK RACING 2.0</h2>
+  <p id="overlayText">Weiche dem Verkehr aus und sammle Punkte!<br>
+  Aktiviere Nitro für einen Geschwindigkeitsschub.</p>
+  <button id="start">🚀 RENNEN STARTEN</button>
+  <div class="small">Steuerung: Pfeile / A-D oder Touch</div>
+ </div>
+</div>
+
+<div id="controls">
+ <button id="left" aria-label="Nach links">⬅️</button>
+ <button id="nitro">🔥 NITRO</button>
+ <button id="right" aria-label="Nach rechts">➡️</button>
+</div>
+
+<div id="garage">
+ <strong>🏎️ GARAGE – Wähle dein Auto</strong>
+ <div id="cars">
+  <button class="carChoice selected" data-car="🏎️">🏎️</button>
+  <button class="carChoice" data-car="🚗">🚗</button>
+  <button class="carChoice" data-car="🚙">🚙</button>
+  <button class="carChoice" data-car="🏎️‍💨">🏎️‍💨</button>
+  <button class="carChoice" data-car="🚕">🚕</button>
+ </div>
+ <div id="message">Wähle dein Fahrzeug und starte das Rennen!</div>
+ <div class="small">Sound startet nach deinem ersten Klick.</div>
+</div>
+
+<script>
+const game=document.getElementById('game');
+const player=document.getElementById('player');
+const playerEmoji=document.getElementById('playerEmoji');
+const overlay=document.getElementById('overlay');
+const overlayTitle=document.getElementById('overlayTitle');
+const overlayText=document.getElementById('overlayText');
+const scoreBox=document.getElementById('score');
+const levelBox=document.getElementById('level');
+const bestBox=document.getElementById('best');
+const message=document.getElementById('message');
+
+let x=1,score=0,level=1,running=false,nitro=false;
+let enemies=[],lastSpawn=0,lastFrame=0,raf=0,nitroTimer=0;
+let selectedCar='🏎️',audioCtx=null,engineOsc=null,engineGain=null;
+let best=0;
+
+try{best=Number(localStorage.getItem('starkRacingBest'))||0}catch(e){}
+bestBox.textContent=best;
+
+const lanes=[0,1,2];
+function laneX(lane){return 16.7+lane*33.3}
+
+function soundSetup(){
+ if(audioCtx)return;
+ try{
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  engineOsc=audioCtx.createOscillator();
+  engineGain=audioCtx.createGain();
+  engineOsc.type='sawtooth';
+  engineOsc.frequency.value=65;
+  engineGain.gain.value=0;
+  engineOsc.connect(engineGain);
+  engineGain.connect(audioCtx.destination);
+  engineOsc.start();
+ }catch(e){}
+}
+function beep(freq,duration,type='sine',volume=.12){
+ if(!audioCtx)return;
+ try{
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type;o.frequency.value=freq;g.gain.value=volume;
+  o.connect(g);g.connect(audioCtx.destination);
+  o.start();g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);
+  o.stop(audioCtx.currentTime+duration);
+ }catch(e){}
+}
+function crashSound(){
+ beep(100,.45,'sawtooth',.22);
+ beep(55,.6,'square',.12);
+}
+function updateEngine(){
+ if(engineGain&&audioCtx){
+  engineGain.gain.setTargetAtTime(running?.035:0,audioCtx.currentTime,.08);
+  if(engineOsc)engineOsc.frequency.setTargetAtTime(nitro?125:65+level*4,audioCtx.currentTime,.08);
+ }
+}
+function move(dir){
+ if(!running)return;
+ x=Math.max(0,Math.min(2,x+dir));
+ player.style.left=laneX(x)+'%';
+}
+document.getElementById('left').addEventListener('pointerdown',e=>{e.preventDefault();move(-1)});
+document.getElementById('right').addEventListener('pointerdown',e=>{e.preventDefault();move(1)});
+
+function activateNitro(){
+ if(!running||nitro)return;
+ nitro=true;player.classList.add('boost');
+ document.getElementById('nitro').classList.add('active');
+ updateEngine();beep(220,.15,'sawtooth',.1);
+ clearTimeout(nitroTimer);
+ nitroTimer=setTimeout(()=>{
+  nitro=false;player.classList.remove('boost');
+  document.getElementById('nitro').classList.remove('active');
+  updateEngine();
+ },1800);
+}
+document.getElementById('nitro').addEventListener('pointerdown',e=>{
+ e.preventDefault();activateNitro();
+});
+
+document.querySelectorAll('.carChoice').forEach(btn=>{
+ btn.addEventListener('click',()=>{
+  if(running)return;
+  selectedCar=btn.dataset.car;
+  playerEmoji.textContent=selectedCar;
+  document.querySelectorAll('.carChoice').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  message.textContent='Ausgewählt: '+selectedCar+' – bereit fürs Rennen!';
+ });
+});
+
+function spawn(){
+ const el=document.createElement('div');
+ el.className='car enemy';
+ el.textContent=['🚙','🚕','🚗','🚐','🚓','🚛'][Math.floor(Math.random()*6)];
+ const lane=lanes[Math.floor(Math.random()*3)];
+ el.style.left=laneX(lane)+'%';el.style.top='-55px';
+ game.appendChild(el);
+ enemies.push({el,lane,y:-55});
+}
+function clearEnemies(){
+ enemies.forEach(e=>e.el.remove());enemies=[];
+}
+function startGame(){
+ soundSetup();
+ if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+ clearEnemies();clearTimeout(nitroTimer);
+ nitro=false;player.classList.remove('boost');
+ document.getElementById('nitro').classList.remove('active');
+ x=1;score=0;level=1;lastSpawn=0;lastFrame=0;running=true;
+ player.style.left=laneX(x)+'%';
+ scoreBox.textContent='0';levelBox.textContent='1';
+ overlay.classList.add('hidden');
+ updateEngine();cancelAnimationFrame(raf);
+ raf=requestAnimationFrame(loop);
+}
+function endGame(){
+ if(!running)return;
+ running=false;updateEngine();crashSound();
+ clearTimeout(nitroTimer);nitro=false;player.classList.remove('boost');
+ document.getElementById('nitro').classList.remove('active');
+ if(score>best){
+  best=score;bestBox.textContent=best;
+  try{localStorage.setItem('starkRacingBest',String(best))}catch(e){}
+ }
+ overlayTitle.textContent='💥 CRASH!';
+ overlayText.innerHTML='Punkte: <b>'+score+'</b><br>Level: <b>'+level+'</b><br>Rekord: <b>'+best+'</b>';
+ document.getElementById('start').textContent='🔁 NOCHMAL FAHREN';
+ overlay.classList.remove('hidden');
+}
+function loop(t){
+ if(!running)return;
+ const dt=Math.min(32,t-(lastFrame||t));lastFrame=t;
+ level=1+Math.floor(score/10);
+ levelBox.textContent=level;
+ const speed=(2.5+level*.35)*(nitro?1.75:1);
+ const spawnDelay=Math.max(370,900-level*45);
+ if(t-lastSpawn>spawnDelay){spawn();lastSpawn=t}
+ for(const e of enemies){
+  e.y+=speed*(dt/16.67);e.el.style.top=e.y+'px';
+  if(e.y>game.clientHeight){e.gone=true;e.el.remove();score++;
+   scoreBox.textContent=score;
+  }
+  if(e.y>game.clientHeight-100&&e.y<game.clientHeight-30&&e.lane===x){
+   endGame();return;
+  }
+ }
+ enemies=enemies.filter(e=>!e.gone);
+ raf=requestAnimationFrame(loop);
+}
+document.getElementById('start').addEventListener('click',startGame);
+document.addEventListener('keydown',e=>{
+ if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a'){e.preventDefault();move(-1)}
+ if(e.key==='ArrowRight'||e.key.toLowerCase()==='d'){e.preventDefault();move(1)}
+ if(e.code==='Space'){e.preventDefault();activateNitro()}
+ if(e.key==='Enter'&&!running)startGame();
+});
+</script>
+</body>
+</html>
