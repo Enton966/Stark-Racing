@@ -113,7 +113,9 @@ function levelLength() {
   return isBoss() ? 150000 : 100000;
 }
 
-function updateHUD(){
+updateEngineSound();
+updateHUD();
+draw();
  levelText.textContent="Level: "+level+(isBoss()?" 👹 BOSS":"");
  speedText.textContent="Speed: "+Math.round(speed);
  scoreText.textContent="Punkte: "+score;
