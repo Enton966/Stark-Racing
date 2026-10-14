@@ -74,7 +74,7 @@ const keys={left:false,right:false,brake:false,nitro:false};
 let audio=null,engineOsc=null,engineGain=null;
 
 function isBoss(){return level%3===0}
-function levelLength(){return isBoss()?150000:100000}
+function levelLength(){return isBoss()?300000:200000}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function random(a,b){return a+Math.random()*(b-a)}
 
