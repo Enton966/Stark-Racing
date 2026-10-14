@@ -60,7 +60,9 @@ let bossDistance=0,traffic=[],enemyX=325;
 
 function isBoss(){return level%3===0}
 
-function levelLength(){return isBoss()?15000:10000}
+function levelLength() {
+  return isBoss() ? 150000 : 100000;
+}
 
 function updateHUD(){
  levelText.textContent="Level: "+level+(isBoss()?" 👹 BOSS":"");
